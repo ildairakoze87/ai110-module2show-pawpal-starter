@@ -1,15 +1,56 @@
 classDiagram
-    %% Replace the placeholders below with your actual classes, attributes, methods, and relationships.
-    %% Keep this file updated so it matches your final implementation.
-
-    class ClassName {
-        +type attribute
-        +method() returnType
+    class Owner {
+        +string owner_name
+        +string available_time
+        +dict preferences
+        +update_available_time() void
+        +update_preferences() void
     }
 
-    class AnotherClass {
-        +type attribute
-        +method() returnType
+    class Pet {
+        +string pet_name
+        +string species
+        +string breed
+        +int age
+        +update_pet_info() void
+        +display_pet_info() string
     }
 
-    ClassName --> AnotherClass : relationship
+    class Task {
+        +string task_name
+        +int duration
+        +string priority
+        +string category
+        +bool recurring
+        +bool completed
+        +edit_task() void
+        +mark_completed() void
+        +get_task_details() string
+    }
+
+    class Scheduler {
+        +list list_of_tasks
+        +string available_time
+        +list scheduled_tasks
+        +list skipped_tasks
+        +sort_tasks() void
+        +generate_schedule() DailyPlan
+        +filter_tasks() list
+        +explain_schedule() string
+    }
+
+    class DailyPlan {
+        +list scheduled_tasks
+        +int total_time_used
+        +int remaining_time
+        +string explanation
+        +display_plan() string
+        +display_explanation() string
+        +calculate_remaining_time() int
+    }
+
+    Owner --> Pet : owns
+    Owner --> Scheduler : uses
+    Pet --> Task : requires
+    Scheduler --> Task : manages
+    Scheduler --> DailyPlan : generates
