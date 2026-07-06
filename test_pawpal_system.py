@@ -81,6 +81,37 @@ def test_recurring_task_creates_next_occurrence_when_completed():
     assert next_task.due_date == task.due_date + timedelta(days=1)
 
 
+def test_scheduler_detects_conflicting_tasks_for_same_or_different_pets():
+    scheduler = Scheduler("90")
+    first_task = Task("Morning walk", 30, "high", "walk", time_of_day="07:00")
+    second_task = Task("Feeding", 15, "medium", "feeding", time_of_day="07:00")
+    first_task.pet_name = "Biscuit"
+    second_task.pet_name = "Mochi"
+    scheduler.list_of_tasks = [first_task, second_task]
+
+    conflicts = scheduler.find_conflicts()
+
+    assert len(conflicts) == 1
+    assert conflicts[0][0] is first_task
+    assert conflicts[0][1] is second_task
+
+
+def test_scheduler_warning_message_mentions_conflicts():
+    scheduler = Scheduler("90")
+    first_task = Task("Morning walk", 30, "high", "walk", time_of_day="07:00")
+    second_task = Task("Grooming", 10, "medium", "grooming", time_of_day="07:00")
+    first_task.pet_name = "Biscuit"
+    second_task.pet_name = "Biscuit"
+    scheduler.list_of_tasks = [first_task, second_task]
+
+    scheduler.find_conflicts()
+    warning = scheduler.get_conflict_warning()
+
+    assert "Warning:" in warning
+    assert "Morning walk" in warning
+    assert "Grooming" in warning
+
+
 def test_scheduler_builds_plan_from_owner_tasks():
     owner = Owner("Maria", "90")
     pet = Pet("Biscuit", "Dog", "Golden Retriever", 3)

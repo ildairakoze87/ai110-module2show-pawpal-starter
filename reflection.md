@@ -68,6 +68,7 @@ One tradeoff is that the scheduler chooses tasks mainly by priority and availabl
 - Why is that tradeoff reasonable for this scenario?
 
 This is reasonable because the app is meant to provide a simple, helpful plan quickly, and a more complex optimization approach would add extra code and complexity without much benefit for this beginner-level project.
+
 ---
 
 ## 3. AI Collaboration

@@ -10,6 +10,7 @@ def main() -> None:
     owner.add_pet(biscuit)
     owner.add_pet(mochi)
 
+    # Demonstrate conflict detection by scheduling two tasks at the same time.
     biscuit.add_task(Task("Morning walk", 30, "high", "walk", time_of_day="07:00"))
     biscuit.add_task(Task("Feeding", 15, "medium", "feeding", time_of_day="08:15"))
     recurring_task = Task(
@@ -22,6 +23,7 @@ def main() -> None:
         recurrence="daily",
     )
     mochi.add_task(recurring_task)
+    biscuit.add_task(Task("Grooming", 10, "medium", "grooming", time_of_day="07:00"))
 
     scheduler = Scheduler(owner.available_time)
     scheduler.load_tasks_from_owner(owner)
@@ -45,6 +47,10 @@ def main() -> None:
     print(f"- Original: {recurring_task.get_task_details()}")
     if next_occurrence is not None:
         print(f"- Next occurrence: {next_occurrence.get_task_details()}")
+
+    conflicts = scheduler.find_conflicts()
+    print("\nConflicts:")
+    print(scheduler.get_conflict_warning())
 
     plan = scheduler.generate_schedule()
 

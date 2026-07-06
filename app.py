@@ -1,6 +1,6 @@
 import streamlit as st
 from datetime import datetime
-from pawpal_system import Owner, Pet, Task
+from pawpal_system import Owner, Pet, Scheduler, Task
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
@@ -85,6 +85,7 @@ if owner.pets:
     with col3:
         priority = st.selectbox("Priority", ["low", "medium", "high"], index=2)
 
+    task_time = st.time_input("Time", value=datetime.now().time())
     recurring = st.checkbox("Recurring task")
     recurrence = ""
     if recurring:
@@ -100,6 +101,7 @@ if owner.pets:
                 recurring=recurring,
                 recurrence=recurrence,
                 due_date=datetime.now().date(),
+                time_of_day=task_time.strftime("%H:%M"),
             )
         )
         st.success(f"{task_title} added to {selected_pet.pet_name}'s tasks.")
@@ -118,18 +120,18 @@ else:
 st.divider()
 
 st.subheader("Build Schedule")
-st.caption("This button should call your scheduling logic once you implement it.")
+st.caption("Generate a schedule and check whether any tasks overlap in time.")
 
 if st.button("Generate schedule"):
-    st.warning(
-        "Not implemented yet. Next step: create your scheduling logic (classes/functions) and call it here."
-    )
-    st.markdown(
-        """
-Suggested approach:
-1. Design your UML (draft).
-2. Create class stubs (no logic).
-3. Implement scheduling behavior.
-4. Connect your scheduler here and display results.
-"""
-    )
+    scheduler = Scheduler(owner.available_time)
+    scheduler.load_tasks_from_owner(owner)
+    conflicts = scheduler.find_conflicts()
+
+    if conflicts:
+        st.warning(scheduler.get_conflict_warning())
+    else:
+        st.success(scheduler.get_conflict_warning())
+
+    plan = scheduler.generate_schedule()
+    st.write(plan.display_plan())
+    st.caption(plan.display_explanation())

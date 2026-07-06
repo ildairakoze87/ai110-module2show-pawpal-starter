@@ -15,6 +15,7 @@ class Task:
     time_of_day: str = "00:00"  # e.g. "07:30"
     recurrence: str = ""       # "daily" or "weekly"
     due_date: datetime = field(default_factory=lambda: datetime.now().date())
+    pet_name: str = ""          # pet that owns this task
 
     def edit_task(self, task_name: str = None, duration: int = None,
                   priority: str = None, category: str = None,
@@ -85,6 +86,7 @@ class Pet:
 
     def add_task(self, task: Task) -> None:
         """Add a task to this pet's care list."""
+        task.pet_name = self.pet_name
         self.tasks.append(task)
 
     def display_pet_info(self) -> str:
@@ -161,6 +163,7 @@ class Scheduler:
         self.available_time_minutes: int = self._parse_available_time(available_time)
         self.scheduled_tasks: List[Task] = []   # tasks that fit in the plan
         self.skipped_tasks: List[Task] = []     # tasks that didn't fit
+        self.conflicts: List[tuple[Task, Task]] = []
 
     def _parse_available_time(self, available_time: str) -> int:
         """Convert a string like '120' or '120 minutes' into an integer."""
@@ -213,6 +216,38 @@ class Scheduler:
             filtered_tasks.append(task)
         return filtered_tasks
 
+    def _tasks_overlap(self, first: Task, second: Task) -> bool:
+        """Return True when two tasks overlap in time."""
+        start_one = self._parse_time(getattr(first, "time_of_day", "00:00"))
+        end_one = start_one + getattr(first, "duration", 0)
+        start_two = self._parse_time(getattr(second, "time_of_day", "00:00"))
+        end_two = start_two + getattr(second, "duration", 0)
+        return start_one < end_two and start_two < end_one
+
+    def find_conflicts(self) -> List[tuple[Task, Task]]:
+        """Return pairs of tasks that overlap in time."""
+        conflicts: List[tuple[Task, Task]] = []
+        for index, first_task in enumerate(self.list_of_tasks):
+            for second_task in self.list_of_tasks[index + 1:]:
+                if self._tasks_overlap(first_task, second_task):
+                    conflicts.append((first_task, second_task))
+        self.conflicts = conflicts
+        return conflicts
+
+    def get_conflict_warning(self) -> str:
+        """Return a lightweight warning message for detected conflicts."""
+        if not self.conflicts:
+            return "No time conflicts detected."
+
+        conflict_lines = []
+        for first_task, second_task in self.conflicts:
+            pet_label = first_task.pet_name or "unknown pet"
+            other_pet = second_task.pet_name or "unknown pet"
+            conflict_lines.append(
+                f"{first_task.task_name} ({first_task.time_of_day}) overlaps with {second_task.task_name} ({second_task.time_of_day}) for {pet_label} and {other_pet}."
+            )
+        return "Warning: " + " | ".join(conflict_lines)
+
     def filter_tasks(self) -> List[Task]:
         """Remove tasks that won't fit within the available time."""
         self.scheduled_tasks = []
@@ -232,6 +267,7 @@ class Scheduler:
         """Build and return a DailyPlan based on sorted and filtered tasks."""
         self.sort_tasks()
         self.filter_tasks()
+        self.find_conflicts()
 
         total_time_used = sum(task.duration for task in self.scheduled_tasks)
         remaining_time = self.available_time_minutes - total_time_used
