@@ -51,7 +51,7 @@ def test_pet_add_task_increments_task_count():
     assert len(pet.tasks) == 1
 
 
-def test_scheduler_sort_by_time_orders_tasks_chronologically():
+def test_sorting_correctness_returns_tasks_in_chronological_order():
     scheduler = Scheduler("90")
     scheduler.list_of_tasks = [
         Task("Medication", 20, "low", "medication", time_of_day="09:30"),
@@ -68,7 +68,7 @@ def test_scheduler_sort_by_time_orders_tasks_chronologically():
     ]
 
 
-def test_recurring_task_creates_next_occurrence_when_completed():
+def test_recurrence_logic_creates_next_day_task_when_daily_task_is_completed():
     task = Task("Medication", 10, "high", "medication", recurring=True, recurrence="daily")
 
     next_task = task.mark_completed()
@@ -129,3 +129,46 @@ def test_scheduler_builds_plan_from_owner_tasks():
     assert plan.total_time_used == 75
     assert plan.remaining_time == 15
     assert "Medication" in plan.explanation
+
+
+def test_filter_tasks_by_handles_empty_results_and_pet_filtering():
+    scheduler = Scheduler("90")
+    tasks = [
+        Task("Morning walk", 30, "high", "walk", time_of_day="07:00"),
+        Task("Feeding", 15, "medium", "feeding", time_of_day="08:15"),
+    ]
+    tasks[0].completed = True
+    scheduler.list_of_tasks = tasks
+
+    pending_tasks = scheduler.filter_tasks_by(completed=False)
+    pet_filtered = scheduler.filter_tasks_by(pet_name="biscuit")
+
+    assert [task.task_name for task in pending_tasks] == ["Feeding"]
+    assert pet_filtered == []
+
+
+def test_scheduler_handles_pet_with_no_tasks():
+    owner = Owner("Maria", "90")
+    pet = Pet("Biscuit", "Dog", "Golden Retriever", 3)
+    owner.add_pet(pet)
+
+    scheduler = Scheduler("90")
+    scheduler.load_tasks_from_owner(owner)
+    plan = scheduler.generate_schedule()
+
+    assert plan.scheduled_tasks == []
+    assert plan.total_time_used == 0
+    assert plan.remaining_time == 90
+
+
+def test_conflict_detection_flags_duplicate_times():
+    scheduler = Scheduler("90")
+    first_task = Task("Morning walk", 30, "high", "walk", time_of_day="07:00")
+    second_task = Task("Grooming", 10, "medium", "grooming", time_of_day="07:00")
+    scheduler.list_of_tasks = [first_task, second_task]
+
+    conflicts = scheduler.find_conflicts()
+
+    assert len(conflicts) == 1
+    assert conflicts[0][0] is first_task
+    assert conflicts[0][1] is second_task

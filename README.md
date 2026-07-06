@@ -67,18 +67,28 @@ Tasks were sorted by priority and scheduled until the 90-minute limit was reache
 ```
 ## 🧪 Testing PawPal+
 
-```bash
-# Run the full test suite:
-pytest
+Run the full test suite with:
 
-# Run with coverage:
-pytest --cov
+```bash
+python -m pytest
 ```
+
+These tests cover the core scheduler behaviors, including task updates, owner/pet task collection, chronological sorting, recurring-task creation, conflict detection for overlapping times, filtering by status or pet, and schedule generation for owners with and without tasks.
+
+Confidence level: ⭐⭐⭐⭐☆ (4/5)
 
 Sample test output:
 
-```
-# Paste your pytest output here
+```text
+=================================== test session starts ===================================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.5.0
+rootdir: /Users/ilda/Desktop/ai110-module2show-pawpal-starter
+plugins: anyio-4.7.0
+collected 12 items
+
+test_pawpal_system.py ............                                                  [100%]
+
+=================================== 12 passed in 0.02s ====================================
 ```
 
 ## 📐 Smarter Scheduling
