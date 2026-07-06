@@ -54,6 +54,17 @@ Paste a sample of your app's CLI or Streamlit output here so a reader can see wh
 #   ...
 ```
 
+```
+Today's Schedule
+====================
+Scheduled tasks (65 min used):
+- Morning walk (walk) - 30 min | priority: high | one-time | pending
+- Feeding (feeding) - 15 min | priority: medium | one-time | pending
+- Medication (medication) - 20 min | priority: low | one-time | pending
+
+Reasoning:
+Tasks were sorted by priority and scheduled until the 90-minute limit was reached. Included: Morning walk, Feeding, Medication. Skipped due to time: none.
+```
 ## 🧪 Testing PawPal+
 
 ```bash

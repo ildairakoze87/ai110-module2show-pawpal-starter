@@ -1,0 +1,68 @@
+from pawpal_system import Owner, Pet, Scheduler, Task
+
+
+def test_task_methods_update_and_report_status():
+    task = Task("Morning Walk", 30, "high", "walk")
+
+    task.edit_task(duration=45, priority="medium")
+    task.mark_completed()
+
+    assert task.duration == 45
+    assert task.priority == "medium"
+    assert task.completed is True
+    assert "Morning Walk" in task.get_task_details()
+    assert "completed" in task.get_task_details()
+
+
+def test_owner_collects_tasks_from_all_pets():
+    owner = Owner("Maria", "90")
+    pet_one = Pet("Biscuit", "Dog", "Golden Retriever", 3)
+    pet_two = Pet("Mochi", "Cat", "Siamese", 2)
+
+    owner.add_pet(pet_one)
+    owner.add_pet(pet_two)
+
+    pet_one.add_task(Task("Walk", 30, "high", "walk"))
+    pet_two.add_task(Task("Feed", 10, "medium", "feeding"))
+
+    all_tasks = owner.get_all_tasks()
+
+    assert len(all_tasks) == 2
+    assert [task.task_name for task in all_tasks] == ["Walk", "Feed"]
+
+
+def test_task_completion_marks_task_completed():
+    task = Task("Play time", 20, "low", "play")
+    assert task.completed is False
+
+    task.mark_completed()
+
+    assert task.completed is True
+
+
+def test_pet_add_task_increments_task_count():
+    pet = Pet("Biscuit", "Dog", "Golden Retriever", 3)
+    assert len(pet.tasks) == 0
+
+    pet.add_task(Task("Feeding", 10, "high", "feeding"))
+
+    assert len(pet.tasks) == 1
+
+
+def test_scheduler_builds_plan_from_owner_tasks():
+    owner = Owner("Maria", "90")
+    pet = Pet("Biscuit", "Dog", "Golden Retriever", 3)
+    owner.add_pet(pet)
+
+    pet.add_task(Task("Morning walk", 40, "high", "walk"))
+    pet.add_task(Task("Feeding", 15, "medium", "feeding"))
+    pet.add_task(Task("Medication", 20, "low", "medication"))
+
+    scheduler = Scheduler("90")
+    scheduler.load_tasks_from_owner(owner)
+    plan = scheduler.generate_schedule()
+
+    assert [task.task_name for task in plan.scheduled_tasks] == ["Morning walk", "Feeding", "Medication"]
+    assert plan.total_time_used == 75
+    assert plan.remaining_time == 15
+    assert "Medication" in plan.explanation

@@ -4,7 +4,7 @@
 
 **a. Initial design**
 
--My project classes description 
+**My project classes description:** 
 
 My initial UML design identifies five core classes representing the real-world objects in the PawPal+ system:
 
@@ -39,8 +39,8 @@ This design separates concerns: Owner and Pet represent data entities, Task repr
 
 **b. Design changes**
 
-- Did your design change during implementation?
-- If yes, describe at least one change and why you made it.
+Yes. I slightly adjusted the design to make the classes more self-contained. Instead of keeping most behavior in the scheduler alone, I gave each core object methods such as edit_task, mark_completed, update_pet_info, and update_available_time so that the data and actions stay together. This made the system easier to understand and use, and it also made the scheduler simpler because it could focus on planning rather than managing every update.
+
 
 ---
 
