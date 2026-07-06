@@ -125,12 +125,33 @@ st.caption("Generate a schedule and check whether any tasks overlap in time.")
 if st.button("Generate schedule"):
     scheduler = Scheduler(owner.available_time)
     scheduler.load_tasks_from_owner(owner)
-    conflicts = scheduler.find_conflicts()
 
-    if conflicts:
-        st.warning(scheduler.get_conflict_warning())
+    scheduler.sort_tasks()
+    pending_tasks = scheduler.filter_tasks_by(completed=False)
+
+    if pending_tasks:
+        st.subheader("Sorted pending tasks")
+        task_rows = [
+            {
+                "Task": task.task_name,
+                "Time": task.time_of_day,
+                "Priority": task.priority.title(),
+                "Pet": task.pet_name or "Unassigned",
+                "Duration": f"{task.duration} min",
+            }
+            for task in pending_tasks
+        ]
+        st.table(task_rows)
     else:
-        st.success(scheduler.get_conflict_warning())
+        st.info("No pending tasks to show.")
+
+    scheduler.find_conflicts()
+    warning_message = scheduler.get_conflict_warning()
+    if warning_message.startswith("Warning:"):
+        st.warning(warning_message)
+        st.caption("Consider moving one of the overlapping tasks to a different time slot.")
+    else:
+        st.success(warning_message)
 
     plan = scheduler.generate_schedule()
     st.write(plan.display_plan())

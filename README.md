@@ -22,6 +22,14 @@ Your final app should:
 - Display the plan clearly (and ideally explain the reasoning)
 - Include tests for the most important scheduling behaviors
 
+## Features
+
+- Sorting by priority and time: tasks are ordered so the most urgent items appear first, then arranged by time of day.
+- Chronological task ordering: tasks can also be viewed in strict time order for easier planning.
+- Conflict warnings: overlapping tasks are detected and shown as warnings so the owner can adjust the schedule.
+- Filtering by status or pet: pending tasks can be filtered by completion state or pet name.
+- Daily recurrence: recurring tasks create a new occurrence for the next day or week when completed.
+
 ## Getting started
 
 ### Setup
@@ -102,14 +110,42 @@ The scheduler now supports a few lightweight but useful planning behaviors:
 | Conflict detection logic | `Scheduler._tasks_overlap()`, `Scheduler.find_conflicts()`, and `Scheduler.get_conflict_warning()` | The app detects overlapping task times and surfaces a clear warning message instead of crashing. |
 | Recurring task logic | `Task.mark_completed()` | Completing a recurring task creates the next occurrence for daily or weekly repetition. |
 
-## 📸 Demo Walkthrough
+## 🎬 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+PawPal+ provides a simple, interactive flow for creating pet-care plans.
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+1. Open the Streamlit app and enter owner information, then add a pet such as Biscuit or Mochi.
+2. Create one or more care tasks for that pet, including a title, duration, priority, and optional time.
+3. Use the schedule button to generate a daily plan. The app shows the pending tasks in a sorted table and highlights any overlap warnings.
+4. Review the generated schedule and the scheduler explanation to see which tasks were included and why.
+5. If a recurring task is completed, the scheduler can create the next occurrence for the following day or week.
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+Example workflow:
+- Add a pet → add a task such as a morning walk → generate the schedule → review the sorted tasks and any conflict warnings.
+
+Key scheduler behaviors shown in the demo:
+- Sorting by priority and time
+- Conflict warnings when two tasks overlap
+- Filtering of pending tasks and schedule generation within the owner’s available time
+- Recurring-task generation after completion
+
+Sample CLI output from running `main.py`:
+
+```text
+Unsorted tasks:
+- Morning walk (07:00)
+- Feeding (08:15)
+- Grooming (07:00)
+- Medication (09:30)
+
+Sorted tasks by priority and time:
+- Morning walk (07:00)
+- Grooming (07:00)
+- Feeding (08:15)
+- Medication (09:30)
+
+Conflicts:
+Warning: Morning walk (07:00) overlaps with Grooming (07:00) for Biscuit and Biscuit.
+```
+
+**Screenshot or video** *(optional)*: You may add a screenshot here if you want a visual reviewer reference.

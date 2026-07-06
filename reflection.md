@@ -41,6 +41,11 @@ This design separates concerns: Owner and Pet represent data entities, Task repr
 
 Yes. I slightly adjusted the design to make the classes more self-contained. Instead of keeping most behavior in the scheduler alone, I gave each core object methods such as edit_task, mark_completed, update_pet_info, and update_available_time so that the data and actions stay together. This made the system easier to understand and use, and it also made the scheduler simpler because it could focus on planning rather than managing every update.
 
+Implemented features:
+- Sorting by priority and time so the most important tasks appear first.
+- Conflict warnings that flag overlapping tasks at the same time.
+- Filtering by completion status or pet name to focus the plan.
+- Daily recurrence that generates the next occurrence of a recurring task when it is completed.
 
 ---
 
@@ -75,13 +80,13 @@ This is reasonable because the app is meant to provide a simple, helpful plan qu
 
 **a. How you used AI**
 
-- How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
-- What kinds of prompts or questions were most helpful?
+- I used AI to help brainstorm the class structure, refine the scheduler logic, and debug issues in the implementation.
+- The most helpful prompts were specific requests such as asking for help implementing a method, explaining a bug, or reviewing whether the code matched the UML design.
 
 **b. Judgment and verification**
 
-- Describe one moment where you did not accept an AI suggestion as-is.
-- How did you evaluate or verify what the AI suggested?
+- I did not accept every suggestion automatically. For example, I verified any AI-generated logic by checking whether it fit the existing class design and by running the tests.
+- I evaluated the suggestions by comparing them to the project requirements and confirming the behavior with pytest and the demo script.
 
 ---
 
@@ -89,13 +94,13 @@ This is reasonable because the app is meant to provide a simple, helpful plan qu
 
 **a. What you tested**
 
-- What behaviors did you test?
-- Why were these tests important?
+- I tested task updates, recurring-task behavior, chronological sorting, conflict detection, filtering by status or pet, and schedule generation for owners with and without tasks.
+- These tests were important because they verify the core scheduling logic that the app depends on.
 
 **b. Confidence**
 
-- How confident are you that your scheduler works correctly?
-- What edge cases would you test next if you had more time?
+- I am fairly confident that the scheduler works correctly for the current scope because the test suite passes and the demo script shows the expected behavior.
+- If I had more time, I would test more edge cases such as partial overlaps, very tight time limits, and tasks with unusual or invalid time values.
 
 ---
 
@@ -103,12 +108,16 @@ This is reasonable because the app is meant to provide a simple, helpful plan qu
 
 **a. What went well**
 
-- What part of this project are you most satisfied with?
+- I am most satisfied with turning the initial class design into a working scheduler that can sort tasks, detect conflicts, and generate a simple daily plan.
 
 **b. What you would improve**
 
-- If you had another iteration, what would you improve or redesign?
+- If I had another iteration, I would improve the scheduler to handle more realistic conflict resolution and make the UI more polished.
 
 **c. Key takeaway**
 
-- What is one important thing you learned about designing systems or working with AI on this project?
+- I learned that a simple, well-structured design makes it much easier to build and test a working system, especially when using AI to support implementation.
+
+## Lead Architect Reflection
+
+Being the lead architect in this project taught me that AI is most useful when it is guided by clear goals, strong requirements, and steady verification. I had to define the structure of the system, check that each suggestion matched the design, and make sure the final implementation stayed simple and testable. The biggest lesson was that AI can accelerate development, but the architect still has to make the decisions, keep the design coherent, and verify the results.
