@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from pawpal_system import Owner, Pet, Scheduler, Task
 
 
@@ -64,6 +66,19 @@ def test_scheduler_sort_by_time_orders_tasks_chronologically():
         "Feeding",
         "Medication",
     ]
+
+
+def test_recurring_task_creates_next_occurrence_when_completed():
+    task = Task("Medication", 10, "high", "medication", recurring=True, recurrence="daily")
+
+    next_task = task.mark_completed()
+
+    assert task.completed is True
+    assert next_task is not None
+    assert next_task.completed is False
+    assert next_task.recurrence == "daily"
+    assert next_task.task_name == "Medication"
+    assert next_task.due_date == task.due_date + timedelta(days=1)
 
 
 def test_scheduler_builds_plan_from_owner_tasks():

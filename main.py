@@ -12,7 +12,16 @@ def main() -> None:
 
     biscuit.add_task(Task("Morning walk", 30, "high", "walk", time_of_day="07:00"))
     biscuit.add_task(Task("Feeding", 15, "medium", "feeding", time_of_day="08:15"))
-    mochi.add_task(Task("Medication", 20, "low", "medication", time_of_day="09:30"))
+    recurring_task = Task(
+        "Medication",
+        20,
+        "low",
+        "medication",
+        time_of_day="09:30",
+        recurring=True,
+        recurrence="daily",
+    )
+    mochi.add_task(recurring_task)
 
     scheduler = Scheduler(owner.available_time)
     scheduler.load_tasks_from_owner(owner)
@@ -30,6 +39,12 @@ def main() -> None:
     print("\nFiltered tasks for Biscuit:")
     for task in filtered_tasks:
         print(f"- {task.task_name}")
+
+    next_occurrence = recurring_task.mark_completed()
+    print("\nCompleted recurring task:")
+    print(f"- Original: {recurring_task.get_task_details()}")
+    if next_occurrence is not None:
+        print(f"- Next occurrence: {next_occurrence.get_task_details()}")
 
     plan = scheduler.generate_schedule()
 

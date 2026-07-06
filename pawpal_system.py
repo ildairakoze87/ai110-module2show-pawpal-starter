@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from typing import List, Optional
 
 
@@ -12,6 +13,8 @@ class Task:
     recurring: bool = False     # does it repeat daily?
     completed: bool = False     # has it been done today?
     time_of_day: str = "00:00"  # e.g. "07:30"
+    recurrence: str = ""       # "daily" or "weekly"
+    due_date: datetime = field(default_factory=lambda: datetime.now().date())
 
     def edit_task(self, task_name: str = None, duration: int = None,
                   priority: str = None, category: str = None,
@@ -28,9 +31,26 @@ class Task:
         if time_of_day is not None:
             self.time_of_day = time_of_day
 
-    def mark_completed(self) -> None:
-        """Mark this task as completed."""
+    def mark_completed(self):
+        """Mark this task as completed and create the next recurring occurrence if needed."""
         self.completed = True
+
+        if self.recurring:
+            frequency = self.recurrence.lower() if self.recurrence else "daily"
+            if frequency in {"daily", "weekly"}:
+                next_due_date = self.due_date + timedelta(days=1) if frequency == "daily" else self.due_date + timedelta(weeks=1)
+                return Task(
+                    task_name=self.task_name,
+                    duration=self.duration,
+                    priority=self.priority,
+                    category=self.category,
+                    recurring=self.recurring,
+                    completed=False,
+                    time_of_day=self.time_of_day,
+                    recurrence=frequency,
+                    due_date=next_due_date,
+                )
+        return None
 
     def get_task_details(self) -> str:
         """Return a readable string summary of this task."""
@@ -174,6 +194,12 @@ class Scheduler:
                 task.duration,
                 task.task_name.lower(),
             )
+        )
+
+    def sort_by_time(self) -> None:
+        """Sort list_of_tasks chronologically by time_of_day."""
+        self.list_of_tasks.sort(
+            key=lambda task: self._parse_time(getattr(task, "time_of_day", "00:00"))
         )
 
     def filter_tasks_by(self, completed: bool = None, pet_name: str = None) -> List[Task]:

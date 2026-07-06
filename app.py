@@ -1,4 +1,5 @@
-pyimport streamlit as st
+import streamlit as st
+from datetime import datetime
 from pawpal_system import Owner, Pet, Task
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
@@ -84,8 +85,23 @@ if owner.pets:
     with col3:
         priority = st.selectbox("Priority", ["low", "medium", "high"], index=2)
 
+    recurring = st.checkbox("Recurring task")
+    recurrence = ""
+    if recurring:
+        recurrence = st.selectbox("Repeat every", ["daily", "weekly"], index=0)
+
     if st.button("Add task"):
-        selected_pet.add_task(Task(task_title, int(duration), priority, "general"))
+        selected_pet.add_task(
+            Task(
+                task_title,
+                int(duration),
+                priority,
+                "general",
+                recurring=recurring,
+                recurrence=recurrence,
+                due_date=datetime.now().date(),
+            )
+        )
         st.success(f"{task_title} added to {selected_pet.pet_name}'s tasks.")
 
     st.write("Current tasks:")
