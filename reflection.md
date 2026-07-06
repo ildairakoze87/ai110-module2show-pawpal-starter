@@ -62,7 +62,7 @@ I prioritized time and task priority because they are the most important for cre
 
 - Describe one tradeoff your scheduler makes.
 
-One tradeoff is that the scheduler chooses tasks mainly by priority and available time, rather than trying to optimize every possible combination. This is reasonable for this project because the app is meant to provide a simple, fast daily plan for a busy pet owner, not a fully complex optimization engine.
+One tradeoff is that the scheduler currently checks for overlaps by comparing task start times and durations in a simple way, rather than using a more sophisticated calendar-style conflict model. In practice, this means it can detect obvious overlaps such as two tasks scheduled for the same time slot, but it does not yet reason about more nuanced cases like partial overlaps across a longer range or tasks that should be spaced apart by a buffer. This keeps the implementation lightweight and easy to understand, while still giving the user a useful warning.
 
 
 - Why is that tradeoff reasonable for this scenario?

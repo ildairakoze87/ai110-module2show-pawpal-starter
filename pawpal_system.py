@@ -188,7 +188,7 @@ class Scheduler:
             return 0
 
     def sort_tasks(self) -> None:
-        """Sort list_of_tasks by priority: high first, then medium, then low."""
+        """Sort tasks by priority, then by time, duration, and name for a stable plan."""
         priority_rank = {"high": 0, "medium": 1, "low": 2}
         self.list_of_tasks.sort(
             key=lambda task: (
@@ -200,13 +200,13 @@ class Scheduler:
         )
 
     def sort_by_time(self) -> None:
-        """Sort list_of_tasks chronologically by time_of_day."""
+        """Sort tasks chronologically by their scheduled time of day."""
         self.list_of_tasks.sort(
             key=lambda task: self._parse_time(getattr(task, "time_of_day", "00:00"))
         )
 
     def filter_tasks_by(self, completed: bool = None, pet_name: str = None) -> List[Task]:
-        """Return tasks filtered by completion status and/or pet name."""
+        """Return tasks filtered by completion state and/or pet name."""
         filtered_tasks: List[Task] = []
         for task in self.list_of_tasks:
             if completed is not None and task.completed != completed:
@@ -217,7 +217,7 @@ class Scheduler:
         return filtered_tasks
 
     def _tasks_overlap(self, first: Task, second: Task) -> bool:
-        """Return True when two tasks overlap in time."""
+        """Return True when two tasks share any time span in the day."""
         start_one = self._parse_time(getattr(first, "time_of_day", "00:00"))
         end_one = start_one + getattr(first, "duration", 0)
         start_two = self._parse_time(getattr(second, "time_of_day", "00:00"))
@@ -225,7 +225,7 @@ class Scheduler:
         return start_one < end_two and start_two < end_one
 
     def find_conflicts(self) -> List[tuple[Task, Task]]:
-        """Return pairs of tasks that overlap in time."""
+        """Return every overlapping task pair found in the current task list."""
         conflicts: List[tuple[Task, Task]] = []
         for index, first_task in enumerate(self.list_of_tasks):
             for second_task in self.list_of_tasks[index + 1:]:
@@ -235,7 +235,7 @@ class Scheduler:
         return conflicts
 
     def get_conflict_warning(self) -> str:
-        """Return a lightweight warning message for detected conflicts."""
+        """Return a friendly warning message describing any detected task conflicts."""
         if not self.conflicts:
             return "No time conflicts detected."
 
@@ -249,7 +249,7 @@ class Scheduler:
         return "Warning: " + " | ".join(conflict_lines)
 
     def filter_tasks(self) -> List[Task]:
-        """Remove tasks that won't fit within the available time."""
+        """Place tasks into the scheduled list when they fit within the available time."""
         self.scheduled_tasks = []
         self.skipped_tasks = []
         remaining_time = self.available_time_minutes
@@ -264,7 +264,7 @@ class Scheduler:
         return self.scheduled_tasks
 
     def generate_schedule(self) -> DailyPlan:
-        """Build and return a DailyPlan based on sorted and filtered tasks."""
+        """Build a daily plan from sorted tasks that fit within the allowed time."""
         self.sort_tasks()
         self.filter_tasks()
         self.find_conflicts()
@@ -280,7 +280,7 @@ class Scheduler:
         return plan
 
     def explain_schedule(self) -> str:
-        """Return a human-readable explanation of the scheduling decisions."""
+        """Return a short explanation of which tasks were included or skipped."""
         if not self.list_of_tasks:
             return "No tasks were available to schedule."
 
