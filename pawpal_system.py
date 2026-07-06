@@ -11,9 +11,11 @@ class Task:
     category: str               # e.g. "walk", "feeding", "medication"
     recurring: bool = False     # does it repeat daily?
     completed: bool = False     # has it been done today?
+    time_of_day: str = "00:00"  # e.g. "07:30"
 
     def edit_task(self, task_name: str = None, duration: int = None,
-                  priority: str = None, category: str = None) -> None:
+                  priority: str = None, category: str = None,
+                  time_of_day: str = None) -> None:
         """Edit one or more fields of this task."""
         if task_name is not None:
             self.task_name = task_name
@@ -23,6 +25,8 @@ class Task:
             self.priority = priority.lower()
         if category is not None:
             self.category = category
+        if time_of_day is not None:
+            self.time_of_day = time_of_day
 
     def mark_completed(self) -> None:
         """Mark this task as completed."""
@@ -34,7 +38,7 @@ class Task:
         recurring_text = "recurring" if self.recurring else "one-time"
         return (
             f"{self.task_name} ({self.category}) - {self.duration} min | "
-            f"priority: {self.priority} | {recurring_text} | {status}"
+            f"priority: {self.priority} | {recurring_text} | {status} | time: {self.time_of_day}"
         )
 
 
@@ -152,16 +156,36 @@ class Scheduler:
         """Retrieve all incomplete tasks from the owner's pets."""
         self.list_of_tasks = [task for task in owner.get_all_tasks() if not task.completed]
 
+    def _parse_time(self, time_value: str) -> int:
+        """Convert an HH:MM string into total minutes for sorting."""
+        try:
+            hours_str, minutes_str = time_value.split(":")
+            return int(hours_str) * 60 + int(minutes_str)
+        except (AttributeError, ValueError):
+            return 0
+
     def sort_tasks(self) -> None:
         """Sort list_of_tasks by priority: high first, then medium, then low."""
         priority_rank = {"high": 0, "medium": 1, "low": 2}
         self.list_of_tasks.sort(
             key=lambda task: (
                 priority_rank.get(task.priority.lower(), 99),
+                self._parse_time(getattr(task, "time_of_day", "00:00")),
                 task.duration,
                 task.task_name.lower(),
             )
         )
+
+    def filter_tasks_by(self, completed: bool = None, pet_name: str = None) -> List[Task]:
+        """Return tasks filtered by completion status and/or pet name."""
+        filtered_tasks: List[Task] = []
+        for task in self.list_of_tasks:
+            if completed is not None and task.completed != completed:
+                continue
+            if pet_name is not None and pet_name not in task.task_name.lower():
+                continue
+            filtered_tasks.append(task)
+        return filtered_tasks
 
     def filter_tasks(self) -> List[Task]:
         """Remove tasks that won't fit within the available time."""

@@ -49,6 +49,23 @@ def test_pet_add_task_increments_task_count():
     assert len(pet.tasks) == 1
 
 
+def test_scheduler_sort_by_time_orders_tasks_chronologically():
+    scheduler = Scheduler("90")
+    scheduler.list_of_tasks = [
+        Task("Medication", 20, "low", "medication", time_of_day="09:30"),
+        Task("Morning walk", 30, "high", "walk", time_of_day="07:00"),
+        Task("Feeding", 10, "medium", "feeding", time_of_day="08:15"),
+    ]
+
+    scheduler.sort_by_time()
+
+    assert [task.task_name for task in scheduler.list_of_tasks] == [
+        "Morning walk",
+        "Feeding",
+        "Medication",
+    ]
+
+
 def test_scheduler_builds_plan_from_owner_tasks():
     owner = Owner("Maria", "90")
     pet = Pet("Biscuit", "Dog", "Golden Retriever", 3)

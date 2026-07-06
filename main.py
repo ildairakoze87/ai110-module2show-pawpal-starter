@@ -10,15 +10,30 @@ def main() -> None:
     owner.add_pet(biscuit)
     owner.add_pet(mochi)
 
-    biscuit.add_task(Task("Morning walk", 30, "high", "walk"))
-    biscuit.add_task(Task("Feeding", 15, "medium", "feeding"))
-    mochi.add_task(Task("Medication", 20, "low", "medication"))
+    biscuit.add_task(Task("Morning walk", 30, "high", "walk", time_of_day="07:00"))
+    biscuit.add_task(Task("Feeding", 15, "medium", "feeding", time_of_day="08:15"))
+    mochi.add_task(Task("Medication", 20, "low", "medication", time_of_day="09:30"))
 
     scheduler = Scheduler(owner.available_time)
     scheduler.load_tasks_from_owner(owner)
+
+    print("Unsorted tasks:")
+    for task in scheduler.list_of_tasks:
+        print(f"- {task.task_name} ({task.time_of_day})")
+
+    scheduler.sort_tasks()
+    print("\nSorted tasks by priority and time:")
+    for task in scheduler.list_of_tasks:
+        print(f"- {task.task_name} ({task.time_of_day})")
+
+    filtered_tasks = scheduler.filter_tasks_by(pet_name="biscuit")
+    print("\nFiltered tasks for Biscuit:")
+    for task in filtered_tasks:
+        print(f"- {task.task_name}")
+
     plan = scheduler.generate_schedule()
 
-    print("Today's Schedule")
+    print("\nToday's Schedule")
     print("=" * 20)
     print(plan.display_plan())
     print("\nReasoning:")

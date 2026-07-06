@@ -48,14 +48,26 @@ Yes. I slightly adjusted the design to make the classes more self-contained. Ins
 
 **a. Constraints and priorities**
 
+
+
 - What constraints does your scheduler consider (for example: time, priority, preferences)?
+
+The scheduler considers available time, task duration, task priority, and whether a task is already completed. It also uses the owner’s pet and task data to gather all tasks that need to be considered for the day.
+
 - How did you decide which constraints mattered most?
+
+I prioritized time and task priority because they are the most important for creating a realistic daily plan. Time is the hard limit, while priority determines which tasks should be scheduled first when there is not enough room for everything.
 
 **b. Tradeoffs**
 
 - Describe one tradeoff your scheduler makes.
+
+One tradeoff is that the scheduler chooses tasks mainly by priority and available time, rather than trying to optimize every possible combination. This is reasonable for this project because the app is meant to provide a simple, fast daily plan for a busy pet owner, not a fully complex optimization engine.
+
+
 - Why is that tradeoff reasonable for this scenario?
 
+This is reasonable because the app is meant to provide a simple, helpful plan quickly, and a more complex optimization approach would add extra code and complexity without much benefit for this beginner-level project.
 ---
 
 ## 3. AI Collaboration
