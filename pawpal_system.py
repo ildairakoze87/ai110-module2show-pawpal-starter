@@ -299,6 +299,8 @@ class DailyPlan:
 # ─── SCHEDULER ──────────────────────────────────────────────────────────────
 
 class Scheduler:
+    DEFAULT_RETRIEVAL_FILE = "retrieval_guidance.json"
+
     KNOWLEDGE_BASE = {
         "medication": "Medication tasks should happen as close as possible to their planned time.",
         "feeding": "Feeding should be consistent day to day to avoid stomach upset.",
@@ -315,7 +317,7 @@ class Scheduler:
         "general": 3,
     }
 
-    def __init__(self, available_time: str):
+    def __init__(self, available_time: str, retrieval_file_path: str = None):
         """Initialize the scheduler with available time and empty task lists."""
         self.list_of_tasks: List[Task] = []     # all tasks to consider
         self.available_time: str = available_time
@@ -324,6 +326,13 @@ class Scheduler:
         self.skipped_tasks: List[Task] = []     # tasks that didn't fit
         self.conflicts: List[tuple[Task, Task]] = []
         self.planning_log: List[str] = []
+        self.custom_category_guidance: Dict[str, str] = {}
+        self.custom_task_guidance: Dict[str, str] = {}
+        self.owner_category_guidance: Dict[str, str] = {}
+        self.owner_task_guidance: Dict[str, str] = {}
+
+        default_path = retrieval_file_path or self.DEFAULT_RETRIEVAL_FILE
+        self.load_custom_retrieval_documents(default_path)
 
     def _parse_available_time(self, available_time: str) -> int:
         """Convert a string like '120' or '120 minutes' into an integer."""
@@ -342,7 +351,49 @@ class Scheduler:
     def load_tasks_from_owner(self, owner: Owner) -> None:
         """Retrieve all incomplete tasks from the owner's pets."""
         self.list_of_tasks = [task for task in owner.get_all_tasks() if not task.completed]
+        self._load_owner_guidance(owner.preferences)
         self.planning_log.append(f"Loaded {len(self.list_of_tasks)} pending task(s) from owner data.")
+
+    def load_custom_retrieval_documents(self, file_path: str) -> None:
+        """Load optional retrieval guidance from a custom JSON document."""
+        path = Path(file_path)
+        if not path.exists():
+            self.planning_log.append(f"No custom retrieval file found at {file_path}; using built-in guidance.")
+            return
+
+        try:
+            with path.open("r", encoding="utf-8") as file:
+                data = json.load(file)
+        except (OSError, json.JSONDecodeError) as error:
+            logger.warning("Could not load retrieval file '%s': %s", file_path, error)
+            self.planning_log.append(f"Failed to load custom retrieval file at {file_path}; using built-in guidance.")
+            return
+
+        category_guidance = data.get("category_guidance", {})
+        task_guidance = data.get("task_guidance", {})
+        self.custom_category_guidance = {
+            str(key).lower(): str(value) for key, value in category_guidance.items()
+        }
+        self.custom_task_guidance = {
+            str(key).strip().lower(): str(value) for key, value in task_guidance.items()
+        }
+        self.planning_log.append(
+            "Loaded custom retrieval guidance from document source."
+        )
+
+    def _load_owner_guidance(self, preferences: Dict[str, Any]) -> None:
+        """Load retrieval hints from owner preferences as a second source."""
+        category_guidance = preferences.get("category_guidance", {}) if isinstance(preferences, dict) else {}
+        task_guidance = preferences.get("task_guidance", {}) if isinstance(preferences, dict) else {}
+
+        self.owner_category_guidance = {
+            str(key).lower(): str(value) for key, value in category_guidance.items()
+        }
+        self.owner_task_guidance = {
+            str(key).strip().lower(): str(value) for key, value in task_guidance.items()
+        }
+        if self.owner_category_guidance or self.owner_task_guidance:
+            self.planning_log.append("Loaded owner-preference retrieval guidance.")
 
     def _parse_time(self, time_value: str) -> int:
         """Convert an HH:MM string into total minutes for sorting."""
@@ -436,8 +487,18 @@ class Scheduler:
         return self.scheduled_tasks
 
     def _retrieve_guidance_for_task(self, task: Task) -> str:
-        """Retrieve short category guidance used to explain scheduling decisions."""
+        """Retrieve guidance from multiple sources with deterministic precedence."""
+        task_name = task.task_name.strip().lower()
         category = task.category.lower()
+
+        if task_name in self.owner_task_guidance:
+            return self.owner_task_guidance[task_name]
+        if task_name in self.custom_task_guidance:
+            return self.custom_task_guidance[task_name]
+        if category in self.owner_category_guidance:
+            return self.owner_category_guidance[category]
+        if category in self.custom_category_guidance:
+            return self.custom_category_guidance[category]
         return self.KNOWLEDGE_BASE.get(category, self.KNOWLEDGE_BASE["general"])
 
     def get_planning_log(self) -> List[str]:

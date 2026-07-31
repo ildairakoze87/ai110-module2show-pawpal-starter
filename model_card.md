@@ -3,6 +3,23 @@
 ## Project Overview
 PawPal+ is an applied AI pet-care planning system that helps owners organize daily tasks such as walks, feeding, medication, and grooming. The system uses scheduling logic, retrieval-style guidance, logging, and reliability checks to produce a plan that is both useful and explainable.
 
+## Retrieval Improvement (Before vs After)
+Before: retrieval used only a built-in category knowledge base inside the scheduler.
+
+After: retrieval now uses multiple data sources with clear precedence:
+- Owner preference guidance (`owner.preferences["task_guidance"/"category_guidance"]`)
+- Custom document guidance (`retrieval_guidance.json` with `task_guidance` and `category_guidance`)
+- Built-in scheduler knowledge base as fallback
+
+Before example output:
+- "Medication tasks should happen as close as possible to their planned time."
+
+After example output with custom sources:
+- If `retrieval_guidance.json` includes `"feeding": "Custom feeding rule from document source."`, the explanation uses that guidance.
+- If owner preferences include `"medication": "Owner preference: prioritize medication before other tasks."`, the explanation uses the owner-specific guidance instead of the document rule.
+
+Result: explanations are now personalized and extensible without changing core scheduling code.
+
 ## Limitations and Potential Biases
 - The planner is deterministic rather than learned, so it does not adapt from historical owner behavior or long-term outcomes.
 - The retrieval layer is a small built-in knowledge base, so recommendations reflect the categories encoded by the developer and may miss less common care contexts.

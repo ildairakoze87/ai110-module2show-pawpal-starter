@@ -1,4 +1,5 @@
 from datetime import timedelta
+import json
 
 from pawpal_system import Owner, Pet, Scheduler, Task
 
@@ -225,3 +226,61 @@ def test_scheduler_reliability_report_counts_tasks_and_conflicts():
     assert report["scheduled_tasks"] == 1
     assert report["skipped_tasks"] == 1
     assert report["conflicts"] == 1
+
+
+def test_scheduler_uses_custom_retrieval_document_guidance(tmp_path):
+    retrieval_file = tmp_path / "retrieval_guidance.json"
+    retrieval_file.write_text(
+        json.dumps(
+            {
+                "category_guidance": {
+                    "feeding": "Custom feeding rule from document source."
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    owner = Owner("Maria", "30")
+    pet = Pet("Biscuit", "Dog", "Golden Retriever", 3)
+    owner.add_pet(pet)
+    pet.add_task(Task("Feeding", 10, "high", "feeding", time_of_day="08:00"))
+
+    scheduler = Scheduler(owner.available_time, retrieval_file_path=str(retrieval_file))
+    scheduler.load_tasks_from_owner(owner)
+    plan = scheduler.generate_schedule()
+
+    assert "Custom feeding rule from document source." in plan.explanation
+
+
+def test_owner_preference_guidance_overrides_custom_document(tmp_path):
+    retrieval_file = tmp_path / "retrieval_guidance.json"
+    retrieval_file.write_text(
+        json.dumps(
+            {
+                "category_guidance": {
+                    "medication": "Custom medication rule from document source."
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    owner = Owner(
+        "Maria",
+        "30",
+        preferences={
+            "category_guidance": {
+                "medication": "Owner preference: prioritize medication before other tasks."
+            }
+        },
+    )
+    pet = Pet("Biscuit", "Dog", "Golden Retriever", 3)
+    owner.add_pet(pet)
+    pet.add_task(Task("Medication", 10, "high", "medication", time_of_day="09:00"))
+
+    scheduler = Scheduler(owner.available_time, retrieval_file_path=str(retrieval_file))
+    scheduler.load_tasks_from_owner(owner)
+    plan = scheduler.generate_schedule()
+
+    assert "Owner preference: prioritize medication before other tasks." in plan.explanation
