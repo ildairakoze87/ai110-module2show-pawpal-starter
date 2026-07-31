@@ -1,0 +1,97 @@
+{
+  "total_cases": 5,
+  "pass_count": 5,
+  "fail_count": 0,
+  "average_confidence": 0.88,
+  "results": [
+    {
+      "name": "balanced_plan",
+      "status": "PASS",
+      "confidence": 1.0,
+      "report": {
+        "total_tasks": 3,
+        "scheduled_tasks": 3,
+        "skipped_tasks": 0,
+        "conflicts": 0,
+        "coverage_ratio": 1.0
+      },
+      "checks": [
+        "scheduled=3, expected=3",
+        "conflicts=0, expected=0",
+        "contains='Guidance used:' -> True"
+      ],
+      "failed_checks": []
+    },
+    {
+      "name": "time_limited_plan",
+      "status": "PASS",
+      "confidence": 0.5,
+      "report": {
+        "total_tasks": 2,
+        "scheduled_tasks": 1,
+        "skipped_tasks": 1,
+        "conflicts": 0,
+        "coverage_ratio": 0.5
+      },
+      "checks": [
+        "scheduled=1, expected=1",
+        "conflicts=0, expected=0",
+        "contains='Skipped due to time:' -> True"
+      ],
+      "failed_checks": []
+    },
+    {
+      "name": "conflict_detection",
+      "status": "PASS",
+      "confidence": 0.9,
+      "report": {
+        "total_tasks": 2,
+        "scheduled_tasks": 2,
+        "skipped_tasks": 0,
+        "conflicts": 1,
+        "coverage_ratio": 1.0
+      },
+      "checks": [
+        "scheduled=2, expected=2",
+        "conflicts=1, expected=1"
+      ],
+      "failed_checks": []
+    },
+    {
+      "name": "owner_retrieval_guidance",
+      "status": "PASS",
+      "confidence": 1.0,
+      "report": {
+        "total_tasks": 1,
+        "scheduled_tasks": 1,
+        "skipped_tasks": 0,
+        "conflicts": 0,
+        "coverage_ratio": 1.0
+      },
+      "checks": [
+        "scheduled=1, expected=1",
+        "conflicts=0, expected=0",
+        "contains='Owner preference: feed after hydration check.' -> True"
+      ],
+      "failed_checks": []
+    },
+    {
+      "name": "specialized_style_output",
+      "status": "PASS",
+      "confidence": 1.0,
+      "report": {
+        "total_tasks": 2,
+        "scheduled_tasks": 2,
+        "skipped_tasks": 0,
+        "conflicts": 0,
+        "coverage_ratio": 1.0
+      },
+      "checks": [
+        "scheduled=2, expected=2",
+        "conflicts=0, expected=0",
+        "contains='Care Plan Summary' -> True"
+      ],
+      "failed_checks": []
+    }
+  ]
+}
