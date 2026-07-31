@@ -317,6 +317,21 @@ class Scheduler:
         "general": 3,
     }
 
+    FEW_SHOT_STYLE_PATTERNS = {
+        "clinical_compact": {
+            "label": "Clinical Compact",
+            "header": "Care Plan Summary",
+            "line_template": "- {task_name} at {time_of_day}: {guidance}",
+            "footer": "Risk: {risk_level} | Confidence: {confidence}",
+        },
+        "coach_supportive": {
+            "label": "Coach Supportive",
+            "header": "Pet Care Coaching Note",
+            "line_template": "- {task_name} ({time_of_day}): Focus on consistency. {guidance}",
+            "footer": "Consistency score: {confidence} | Keep iterating based on daily feedback.",
+        },
+    }
+
     def __init__(self, available_time: str, retrieval_file_path: str = None):
         """Initialize the scheduler with available time and empty task lists."""
         self.list_of_tasks: List[Task] = []     # all tasks to consider
@@ -331,6 +346,7 @@ class Scheduler:
         self.custom_task_guidance: Dict[str, str] = {}
         self.owner_category_guidance: Dict[str, str] = {}
         self.owner_task_guidance: Dict[str, str] = {}
+        self.explanation_style: str = "baseline"
 
         default_path = retrieval_file_path or self.DEFAULT_RETRIEVAL_FILE
         self.load_custom_retrieval_documents(default_path)
@@ -357,6 +373,9 @@ class Scheduler:
         """Retrieve all incomplete tasks from the owner's pets."""
         self.list_of_tasks = [task for task in owner.get_all_tasks() if not task.completed]
         self._load_owner_guidance(owner.preferences)
+        if isinstance(owner.preferences, dict):
+            preferred_style = owner.preferences.get("explanation_style", "baseline")
+            self.explanation_style = str(preferred_style)
         self.planning_log.append(f"Loaded {len(self.list_of_tasks)} pending task(s) from owner data.")
         self._record_trace(
             "load_tasks",
@@ -585,6 +604,120 @@ class Scheduler:
             "coverage_ratio": round(coverage, 2),
         }
 
+    def _baseline_explanation(self) -> str:
+        """Return the original baseline explanation style."""
+        included = ", ".join(task.task_name for task in self.scheduled_tasks) or "none"
+        skipped = ", ".join(task.task_name for task in self.skipped_tasks) or "none"
+        guidance_segments = []
+        for task in self.scheduled_tasks:
+            guidance_segments.append(f"{task.task_name}: {self._retrieve_guidance_for_task(task)}")
+        guidance_text = " | ".join(guidance_segments) if guidance_segments else "none"
+
+        return (
+            f"Tasks were sorted by priority and scheduled until the {self.available_time_minutes}-minute "
+            f"limit was reached. Included: {included}. Skipped due to time: {skipped}. "
+            f"Guidance used: {guidance_text}."
+        )
+
+    def _risk_level(self) -> str:
+        """Estimate risk from skipped tasks and detected conflicts."""
+        if self.skipped_tasks or self.conflicts:
+            return "elevated"
+        return "low"
+
+    def _confidence_score_text(self) -> str:
+        """Compute a deterministic confidence score from schedule coverage and conflicts."""
+        total_tasks = len(self.list_of_tasks)
+        if total_tasks == 0:
+            return "1.00"
+
+        coverage = len(self.scheduled_tasks) / total_tasks
+        conflict_penalty = 0.10 * len(self.conflicts)
+        confidence = max(0.0, min(1.0, coverage - conflict_penalty))
+        return f"{confidence:.2f}"
+
+    def _specialized_explanation(self, style: str) -> str:
+        """Generate constrained tone output using few-shot style templates."""
+        profile = self.FEW_SHOT_STYLE_PATTERNS.get(style)
+        if not profile:
+            return self._baseline_explanation()
+
+        lines = [f"{profile['header']} ({profile['label']})"]
+        for task in self.scheduled_tasks:
+            lines.append(
+                profile["line_template"].format(
+                    task_name=task.task_name,
+                    time_of_day=task.time_of_day,
+                    guidance=self._retrieve_guidance_for_task(task),
+                )
+            )
+
+        if not self.scheduled_tasks:
+            lines.append("- No scheduled tasks available.")
+
+        lines.append(
+            profile["footer"].format(
+                risk_level=self._risk_level(),
+                confidence=self._confidence_score_text(),
+            )
+        )
+        if self.skipped_tasks:
+            skipped = ", ".join(task.task_name for task in self.skipped_tasks)
+            lines.append(f"Deferred tasks: {skipped}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _explanation_metrics(text: str) -> Dict[str, Any]:
+        """Return simple measurable stats for explanation comparison."""
+        sentence_count = 0
+        for marker in [".", "!", "?"]:
+            sentence_count += text.count(marker)
+        lines = [line for line in text.splitlines() if line.strip()]
+        bullet_count = sum(1 for line in lines if line.strip().startswith("-"))
+        return {
+            "char_count": len(text),
+            "line_count": len(lines),
+            "sentence_markers": sentence_count,
+            "bullet_count": bullet_count,
+        }
+
+    def compare_explanation_modes(self, specialized_style: str = "clinical_compact") -> Dict[str, Any]:
+        """Compare baseline and specialized outputs with measurable metrics."""
+        baseline_text = self._baseline_explanation()
+        specialized_text = self._specialized_explanation(specialized_style)
+        baseline_metrics = self._explanation_metrics(baseline_text)
+        specialized_metrics = self._explanation_metrics(specialized_text)
+        return {
+            "baseline": {
+                "style": "baseline",
+                "text": baseline_text,
+                "metrics": baseline_metrics,
+            },
+            "specialized": {
+                "style": specialized_style,
+                "text": specialized_text,
+                "metrics": specialized_metrics,
+            },
+            "differences": {
+                "char_delta": specialized_metrics["char_count"] - baseline_metrics["char_count"],
+                "line_delta": specialized_metrics["line_count"] - baseline_metrics["line_count"],
+                "bullet_delta": specialized_metrics["bullet_count"] - baseline_metrics["bullet_count"],
+            },
+        }
+
+    def save_specialized_comparison(
+        self,
+        comparison: Dict[str, Any],
+        file_path: str = "logs/specialized_behavior_report_latest.json",
+    ) -> str:
+        """Persist baseline-vs-specialized comparison for assignment evidence."""
+        path = Path(file_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", encoding="utf-8") as file:
+            json.dump(comparison, file, indent=2)
+        self.planning_log.append(f"Saved specialized behavior report to {path}")
+        return str(path)
+
     def generate_schedule(self) -> DailyPlan:
         """Build a daily plan from sorted tasks that fit within the allowed time."""
         self._record_trace(
@@ -616,21 +749,12 @@ class Scheduler:
         return plan
 
     def explain_schedule(self) -> str:
-        """Return explanation with retrieved guidance for each scheduled task."""
+        """Return baseline or specialized explanation based on selected style."""
         if not self.list_of_tasks:
             return "No tasks were available to schedule."
-
-        included = ", ".join(task.task_name for task in self.scheduled_tasks) or "none"
-        skipped = ", ".join(task.task_name for task in self.skipped_tasks) or "none"
-        guidance_segments = []
-        for task in self.scheduled_tasks:
-            guidance_segments.append(f"{task.task_name}: {self._retrieve_guidance_for_task(task)}")
-        guidance_text = " | ".join(guidance_segments) if guidance_segments else "none"
-
-        return (
-            f"Tasks were sorted by priority and scheduled until the {self.available_time_minutes}-minute "
-            f"limit was reached. Included: {included}. Skipped due to time: {skipped}. "
-            f"Guidance used: {guidance_text}."
-        )
+        style_key = (self.explanation_style or "baseline").strip().lower()
+        if style_key in self.FEW_SHOT_STYLE_PATTERNS:
+            return self._specialized_explanation(style_key)
+        return self._baseline_explanation()
 
 

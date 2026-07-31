@@ -308,3 +308,32 @@ def test_scheduler_decision_trace_records_multistep_reasoning_and_saves(tmp_path
     trace_file = tmp_path / "decision_trace.json"
     scheduler.save_decision_trace(str(trace_file))
     assert trace_file.exists()
+
+
+def test_specialized_explanation_style_differs_from_baseline_and_is_measurable():
+    owner = Owner(
+        "Maria",
+        "45",
+        preferences={
+            "explanation_style": "clinical_compact",
+        },
+    )
+    pet = Pet("Biscuit", "Dog", "Golden Retriever", 3)
+    owner.add_pet(pet)
+    pet.add_task(Task("Medication", 10, "high", "medication", time_of_day="09:00"))
+    pet.add_task(Task("Feeding", 15, "medium", "feeding", time_of_day="08:00"))
+
+    scheduler = Scheduler(owner.available_time)
+    scheduler.load_tasks_from_owner(owner)
+    plan = scheduler.generate_schedule()
+
+    comparison = scheduler.compare_explanation_modes("clinical_compact")
+    baseline_text = comparison["baseline"]["text"]
+    specialized_text = comparison["specialized"]["text"]
+
+    assert "Guidance used:" in baseline_text
+    assert "Care Plan Summary" in specialized_text
+    assert "Risk:" in specialized_text
+    assert baseline_text != specialized_text
+    assert comparison["specialized"]["metrics"]["bullet_count"] > comparison["baseline"]["metrics"]["bullet_count"]
+    assert "Care Plan Summary" in plan.explanation

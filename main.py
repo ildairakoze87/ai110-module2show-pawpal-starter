@@ -75,6 +75,22 @@ def main() -> None:
     for step in scheduler.get_planning_log():
         print(f"- {step}")
 
+    comparison = scheduler.compare_explanation_modes("clinical_compact")
+    report_file = scheduler.save_specialized_comparison(
+        comparison,
+        "logs/specialized_behavior_report_latest.json",
+    )
+    print("\nSpecialized behavior comparison:")
+    print(
+        f"- Baseline chars: {comparison['baseline']['metrics']['char_count']} | "
+        f"Specialized chars: {comparison['specialized']['metrics']['char_count']}"
+    )
+    print(
+        f"- Baseline bullets: {comparison['baseline']['metrics']['bullet_count']} | "
+        f"Specialized bullets: {comparison['specialized']['metrics']['bullet_count']}"
+    )
+    print(f"- Saved comparison report to {report_file}")
+
     trace_file = scheduler.save_decision_trace("logs/reasoning_trace_latest.json")
     print(f"\nSaved structured decision trace to {trace_file}")
 

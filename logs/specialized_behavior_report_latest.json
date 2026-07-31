@@ -1,0 +1,27 @@
+{
+  "baseline": {
+    "style": "baseline",
+    "text": "Tasks were sorted by priority and scheduled until the 90-minute limit was reached. Included: Morning walk, Feeding, Grooming. Skipped due to time: none. Guidance used: Morning walk: Walk tasks are higher value earlier in the day when possible. | Feeding: Feeding should be consistent day to day to avoid stomach upset. | Grooming: Grooming can be delayed if higher-risk care tasks need time first..",
+    "metrics": {
+      "char_count": 398,
+      "line_count": 1,
+      "sentence_markers": 7,
+      "bullet_count": 0
+    }
+  },
+  "specialized": {
+    "style": "clinical_compact",
+    "text": "Care Plan Summary (Clinical Compact)\n- Morning walk at 07:00: Walk tasks are higher value earlier in the day when possible.\n- Feeding at 08:15: Feeding should be consistent day to day to avoid stomach upset.\n- Grooming at 07:00: Grooming can be delayed if higher-risk care tasks need time first.\nRisk: elevated | Confidence: 0.90",
+    "metrics": {
+      "char_count": 329,
+      "line_count": 5,
+      "sentence_markers": 4,
+      "bullet_count": 3
+    }
+  },
+  "differences": {
+    "char_delta": -69,
+    "line_delta": 4,
+    "bullet_delta": 3
+  }
+}

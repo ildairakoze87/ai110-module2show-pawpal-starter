@@ -20,6 +20,28 @@ After example output with custom sources:
 
 Result: explanations are now personalized and extensible without changing core scheduling code.
 
+## Specialized Model Behavior Demonstration
+The system now supports constrained explanation styles using few-shot output patterns (for example `clinical_compact` and `coach_supportive`) selected through owner preferences (`explanation_style`). This emulates specialized model behavior while preserving deterministic reliability.
+
+Baseline mode (default):
+- Single paragraph explanation with "Guidance used" segments.
+
+Specialized mode (`clinical_compact`):
+- Structured "Care Plan Summary" header
+- Bullet-point task lines
+- Deterministic footer with risk and confidence fields
+
+Measurable difference from baseline is generated in `logs/specialized_behavior_report_latest.json`.
+Example metrics from the report include:
+- `char_count`
+- `line_count`
+- `bullet_count`
+- deltas (`char_delta`, `line_delta`, `bullet_delta`) between specialized and baseline output
+
+Before/after behavior evidence:
+- Before: one-paragraph explanation without constrained style template.
+- After: style-constrained summary with explicit sectioning and measurable format changes (increased line count and bullet count).
+
 ## Limitations and Potential Biases
 - The planner is deterministic rather than learned, so it does not adapt from historical owner behavior or long-term outcomes.
 - The retrieval layer is a small built-in knowledge base, so recommendations reflect the categories encoded by the developer and may miss less common care contexts.
