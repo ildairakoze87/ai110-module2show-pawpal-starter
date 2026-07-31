@@ -1,34 +1,14 @@
-graph TD
-	subgraph Presentation
-		A[app.py\nStreamlit UI]
-		C[main.py\nCLI demo]
-	end
+flowchart LR
+	U[User Input\nOwner + Pet + Tasks] --> UI[Interface\nStreamlit or CLI]
+	UI --> R[Retriever\nCategory Guidance Lookup]
+	UI --> P[Agent Planner\nScheduler + Guardrails]
+	R --> P
+	P --> O[Output\nDaily Plan + Explanation]
 
-	subgraph Core
-		B[pawpal_system.py\nDomain + scheduling logic]
-		E[Owner]
-		F[Pet]
-		G[Task]
-		H[Scheduler]
-		I[DailyPlan]
-	end
+	P --> E[Evaluator\nReliability Report + Planning Log]
+	E --> T[Tester\nPytest Reliability Checks]
 
-	subgraph Verification
-		D[test_pawpal_system.py\nAutomated tests]
-	end
-
-	A --> B
-	C --> B
-	D --> B
-
-	B --> E
-	B --> F
-	B --> G
-	B --> H
-	B --> I
-
-	E --> F
-	F --> G
-	H --> G
-	H --> I
+	O --> H[Human Review\nOwner checks plan quality]
+	H --> F[Feedback\nEdit tasks/preferences]
+	F --> UI
 
