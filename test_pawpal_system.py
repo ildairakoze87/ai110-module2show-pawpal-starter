@@ -172,3 +172,56 @@ def test_conflict_detection_flags_duplicate_times():
     assert len(conflicts) == 1
     assert conflicts[0][0] is first_task
     assert conflicts[0][1] is second_task
+
+
+def test_task_guardrails_normalize_invalid_inputs():
+    task = Task("Bad task", -5, "urgent", "walk", time_of_day="77:77")
+
+    assert task.duration == 1
+    assert task.priority == "medium"
+    assert task.time_of_day == "00:00"
+
+
+def test_owner_save_and_load_json_round_trip(tmp_path):
+    file_path = tmp_path / "owner_data.json"
+    owner = Owner("Ava", "60")
+    pet = Pet("Nori", "Dog", "Corgi", 4)
+    pet.add_task(Task("Lunch", 15, "high", "feeding", time_of_day="12:00"))
+    owner.add_pet(pet)
+
+    owner.save_to_json(str(file_path))
+    loaded = Owner.load_from_json(str(file_path))
+
+    assert loaded.owner_name == "Ava"
+    assert len(loaded.pets) == 1
+    assert loaded.pets[0].pet_name == "Nori"
+    assert loaded.pets[0].tasks[0].task_name == "Lunch"
+
+
+def test_scheduler_explanation_includes_retrieved_guidance():
+    owner = Owner("Maria", "30")
+    pet = Pet("Biscuit", "Dog", "Golden Retriever", 3)
+    owner.add_pet(pet)
+    pet.add_task(Task("Medication", 10, "high", "medication", time_of_day="09:00"))
+
+    scheduler = Scheduler(owner.available_time)
+    scheduler.load_tasks_from_owner(owner)
+    plan = scheduler.generate_schedule()
+
+    assert "Guidance used:" in plan.explanation
+    assert "Medication" in plan.explanation
+
+
+def test_scheduler_reliability_report_counts_tasks_and_conflicts():
+    scheduler = Scheduler("15")
+    first_task = Task("Walk", 10, "high", "walk", time_of_day="07:00")
+    second_task = Task("Feeding", 10, "medium", "feeding", time_of_day="07:05")
+    scheduler.list_of_tasks = [first_task, second_task]
+
+    scheduler.generate_schedule()
+    report = scheduler.reliability_report()
+
+    assert report["total_tasks"] == 2
+    assert report["scheduled_tasks"] == 1
+    assert report["skipped_tasks"] == 1
+    assert report["conflicts"] == 1

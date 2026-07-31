@@ -7,7 +7,7 @@ st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 st.title("🐾 PawPal+")
 
 if "owner" not in st.session_state:
-    st.session_state.owner = Owner("Jordan", "120")
+    st.session_state.owner = Owner.load_from_json("data.json")
 
 owner = st.session_state.owner
 
@@ -156,3 +156,14 @@ if st.button("Generate schedule"):
     plan = scheduler.generate_schedule()
     st.write(plan.display_plan())
     st.caption(plan.display_explanation())
+
+    st.subheader("Planner Reliability Snapshot")
+    st.json(scheduler.reliability_report())
+
+    st.subheader("Planner Execution Log")
+    for step in scheduler.get_planning_log():
+        st.write(f"- {step}")
+
+if st.button("Save owner data"):
+    owner.save_to_json("data.json")
+    st.success("Saved owner, pet, and task data to data.json.")

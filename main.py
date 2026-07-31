@@ -2,28 +2,36 @@ from pawpal_system import Owner, Pet, Scheduler, Task
 
 
 def main() -> None:
-    owner = Owner("Maria", "90")
+    owner = Owner.load_from_json("data.json")
+    if not owner.pets:
+        owner.owner_name = "Maria"
+        owner.available_time = "90"
 
-    biscuit = Pet("Biscuit", "Dog", "Golden Retriever", 3)
-    mochi = Pet("Mochi", "Cat", "Siamese", 2)
+        biscuit = Pet("Biscuit", "Dog", "Golden Retriever", 3)
+        mochi = Pet("Mochi", "Cat", "Siamese", 2)
 
-    owner.add_pet(biscuit)
-    owner.add_pet(mochi)
+        owner.add_pet(biscuit)
+        owner.add_pet(mochi)
 
-    # Demonstrate conflict detection by scheduling two tasks at the same time.
-    biscuit.add_task(Task("Morning walk", 30, "high", "walk", time_of_day="07:00"))
-    biscuit.add_task(Task("Feeding", 15, "medium", "feeding", time_of_day="08:15"))
-    recurring_task = Task(
-        "Medication",
-        20,
-        "low",
-        "medication",
-        time_of_day="09:30",
-        recurring=True,
-        recurrence="daily",
-    )
-    mochi.add_task(recurring_task)
-    biscuit.add_task(Task("Grooming", 10, "medium", "grooming", time_of_day="07:00"))
+        # Demonstrate conflict detection by scheduling two tasks at the same time.
+        biscuit.add_task(Task("Morning walk", 30, "high", "walk", time_of_day="07:00"))
+        biscuit.add_task(Task("Feeding", 15, "medium", "feeding", time_of_day="08:15"))
+        recurring_task = Task(
+            "Medication",
+            20,
+            "low",
+            "medication",
+            time_of_day="09:30",
+            recurring=True,
+            recurrence="daily",
+        )
+        mochi.add_task(recurring_task)
+        biscuit.add_task(Task("Grooming", 10, "medium", "grooming", time_of_day="07:00"))
+    else:
+        recurring_task = next(
+            (task for task in owner.get_all_tasks() if task.recurring),
+            Task("Medication", 20, "low", "medication", recurring=True, recurrence="daily", time_of_day="09:30"),
+        )
 
     scheduler = Scheduler(owner.available_time)
     scheduler.load_tasks_from_owner(owner)
@@ -59,6 +67,16 @@ def main() -> None:
     print(plan.display_plan())
     print("\nReasoning:")
     print(plan.display_explanation())
+
+    print("\nReliability snapshot:")
+    print(scheduler.reliability_report())
+
+    print("\nPlanner execution log:")
+    for step in scheduler.get_planning_log():
+        print(f"- {step}")
+
+    owner.save_to_json("data.json")
+    print("\nSaved current state to data.json")
 
 
 if __name__ == "__main__":

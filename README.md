@@ -40,6 +40,61 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+### Reproducible run order
+
+Run these commands in order:
+
+```bash
+python -m pytest -q
+python main.py
+streamlit run app.py
+```
+
+If a `data.json` file exists, the app and CLI load it automatically. If it does not exist, a safe default owner is used.
+
+## Applied AI Integration (Final Project Upgrade)
+
+PawPal+ now behaves like a lightweight applied AI planner, not just a static task list.
+
+### 1) Useful AI behavior: planning + explanation
+
+The system plans a day under constraints and explains why tasks were selected or skipped.
+
+### 2) Advanced feature integrated into core logic
+
+This project includes two integrated advanced features:
+
+- **Retrieval-augmented planning behavior**: scheduler retrieves category guidance (for medication, feeding, walk, grooming, general care) and uses it in scheduling explanation.
+- **Reliability/testing system**: scheduler publishes reliability metrics (`total_tasks`, `scheduled_tasks`, `skipped_tasks`, `conflicts`, `coverage_ratio`) and tests verify these outputs.
+
+These features are used directly inside the main scheduling flow (`Scheduler.generate_schedule()`), the CLI demo (`main.py`), and Streamlit UI (`app.py`).
+
+### 3) Guardrails and logging
+
+Core guardrails are enforced in `Task.__post_init__()`:
+
+- Invalid duration falls back to `1` minute.
+- Unknown priorities fall back to `medium`.
+- Invalid times fall back to `00:00`.
+
+Scheduler also logs key execution events via `planning_log` (load, sort, schedule, conflict detection, plan generation).
+
+### 4) Persistence between runs
+
+Owner, pets, and tasks can be saved and loaded through:
+
+- `Owner.save_to_json("data.json")`
+- `Owner.load_from_json("data.json")`
+
+This makes the system stateful between application runs.
+
+### 5) Files modified for final upgrade
+
+- `pawpal_system.py`: retrieval-aware scheduler, guardrails, persistence, reliability report, execution log.
+- `main.py`: CLI now loads/saves `data.json`, prints reliability snapshot and execution log.
+- `app.py`: UI now loads persisted data, displays reliability + execution log, saves state on demand.
+- `test_pawpal_system.py`: added tests for guardrails, persistence round-trip, retrieved guidance usage, and reliability metrics.
+
 ### Suggested workflow
 
 1. Read the scenario carefully and identify requirements and edge cases.

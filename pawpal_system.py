@@ -1,6 +1,12 @@
+import json
+import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import List, Optional
+from datetime import date, datetime, timedelta
+from pathlib import Path
+from typing import Any, Dict, List, Tuple
+
+
+logger = logging.getLogger("pawpal")
 
 
 # ─── TASK ───────────────────────────────────────────────────────────────────
@@ -14,8 +20,43 @@ class Task:
     completed: bool = False     # has it been done today?
     time_of_day: str = "00:00"  # e.g. "07:30"
     recurrence: str = ""       # "daily" or "weekly"
-    due_date: datetime = field(default_factory=lambda: datetime.now().date())
+    due_date: date = field(default_factory=lambda: datetime.now().date())
     pet_name: str = ""          # pet that owns this task
+
+    VALID_PRIORITIES = {"high", "medium", "low"}
+
+    def __post_init__(self) -> None:
+        """Normalize and guardrail task input so scheduling remains safe."""
+        self.priority = (self.priority or "medium").lower()
+        if self.priority not in self.VALID_PRIORITIES:
+            logger.warning("Unknown priority '%s'. Falling back to 'medium'.", self.priority)
+            self.priority = "medium"
+
+        if not isinstance(self.duration, int) or self.duration <= 0:
+            logger.warning("Invalid duration '%s'. Falling back to 1 minute.", self.duration)
+            self.duration = 1
+
+        if not self._is_valid_time(self.time_of_day):
+            logger.warning("Invalid time_of_day '%s'. Falling back to 00:00.", self.time_of_day)
+            self.time_of_day = "00:00"
+
+        if isinstance(self.due_date, datetime):
+            self.due_date = self.due_date.date()
+
+    @staticmethod
+    def _is_valid_time(time_value: str) -> bool:
+        """Return True only for HH:MM values in 24-hour format."""
+        try:
+            if not isinstance(time_value, str):
+                return False
+            parts = time_value.split(":")
+            if len(parts) != 2:
+                return False
+            hours = int(parts[0])
+            minutes = int(parts[1])
+            return 0 <= hours <= 23 and 0 <= minutes <= 59
+        except ValueError:
+            return False
 
     def edit_task(self, task_name: str = None, duration: int = None,
                   priority: str = None, category: str = None,
@@ -24,13 +65,51 @@ class Task:
         if task_name is not None:
             self.task_name = task_name
         if duration is not None:
-            self.duration = duration
+            self.duration = duration if duration > 0 else 1
         if priority is not None:
-            self.priority = priority.lower()
+            normalized = priority.lower()
+            self.priority = normalized if normalized in self.VALID_PRIORITIES else "medium"
         if category is not None:
             self.category = category
-        if time_of_day is not None:
+        if time_of_day is not None and self._is_valid_time(time_of_day):
             self.time_of_day = time_of_day
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize this task for JSON persistence."""
+        return {
+            "task_name": self.task_name,
+            "duration": self.duration,
+            "priority": self.priority,
+            "category": self.category,
+            "recurring": self.recurring,
+            "completed": self.completed,
+            "time_of_day": self.time_of_day,
+            "recurrence": self.recurrence,
+            "due_date": self.due_date.isoformat(),
+            "pet_name": self.pet_name,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Task":
+        """Deserialize a task from JSON-safe data."""
+        raw_due_date = data.get("due_date", datetime.now().date().isoformat())
+        try:
+            parsed_due_date = date.fromisoformat(str(raw_due_date))
+        except ValueError:
+            parsed_due_date = datetime.now().date()
+
+        return cls(
+            task_name=data.get("task_name", "Untitled Task"),
+            duration=int(data.get("duration", 1)),
+            priority=data.get("priority", "medium"),
+            category=data.get("category", "general"),
+            recurring=bool(data.get("recurring", False)),
+            completed=bool(data.get("completed", False)),
+            time_of_day=data.get("time_of_day", "00:00"),
+            recurrence=data.get("recurrence", ""),
+            due_date=parsed_due_date,
+            pet_name=data.get("pet_name", ""),
+        )
 
     def mark_completed(self):
         """Mark this task as completed and create the next recurring occurrence if needed."""
@@ -96,6 +175,29 @@ class Pet:
             f"with {len(self.tasks)} task(s) planned."
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize this pet and its tasks."""
+        return {
+            "pet_name": self.pet_name,
+            "species": self.species,
+            "breed": self.breed,
+            "age": self.age,
+            "tasks": [task.to_dict() for task in self.tasks],
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Pet":
+        """Deserialize a pet and nested tasks."""
+        pet = cls(
+            pet_name=data.get("pet_name", "Unnamed Pet"),
+            species=data.get("species", "other"),
+            breed=data.get("breed", "Unknown"),
+            age=int(data.get("age", 0)),
+        )
+        for task_data in data.get("tasks", []):
+            pet.add_task(Task.from_dict(task_data))
+        return pet
+
 
 # ─── OWNER ──────────────────────────────────────────────────────────────────
 @dataclass
@@ -123,6 +225,47 @@ class Owner:
         for pet in self.pets:
             all_tasks.extend(pet.tasks)
         return all_tasks
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize owner profile and nested pets/tasks."""
+        return {
+            "owner_name": self.owner_name,
+            "available_time": self.available_time,
+            "preferences": self.preferences,
+            "pets": [pet.to_dict() for pet in self.pets],
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Owner":
+        """Deserialize owner profile from JSON-safe data."""
+        owner = cls(
+            owner_name=data.get("owner_name", "Owner"),
+            available_time=str(data.get("available_time", "120")),
+            preferences=dict(data.get("preferences", {})),
+        )
+        for pet_data in data.get("pets", []):
+            owner.add_pet(Pet.from_dict(pet_data))
+        return owner
+
+    def save_to_json(self, file_path: str = "data.json") -> None:
+        """Persist owner, pets, and tasks to a JSON file."""
+        path = Path(file_path)
+        with path.open("w", encoding="utf-8") as file:
+            json.dump(self.to_dict(), file, indent=2)
+        logger.info("Saved owner data to %s", path)
+
+    @classmethod
+    def load_from_json(cls, file_path: str = "data.json") -> "Owner":
+        """Load persisted owner data or return a safe default owner."""
+        path = Path(file_path)
+        if not path.exists():
+            logger.info("No data file found at %s; using default owner.", path)
+            return cls("Jordan", "120")
+
+        with path.open("r", encoding="utf-8") as file:
+            data = json.load(file)
+        logger.info("Loaded owner data from %s", path)
+        return cls.from_dict(data)
 
 
 # ─── DAILY PLAN ─────────────────────────────────────────────────────────────
@@ -156,6 +299,22 @@ class DailyPlan:
 # ─── SCHEDULER ──────────────────────────────────────────────────────────────
 
 class Scheduler:
+    KNOWLEDGE_BASE = {
+        "medication": "Medication tasks should happen as close as possible to their planned time.",
+        "feeding": "Feeding should be consistent day to day to avoid stomach upset.",
+        "walk": "Walk tasks are higher value earlier in the day when possible.",
+        "grooming": "Grooming can be delayed if higher-risk care tasks need time first.",
+        "general": "General care tasks are scheduled after higher-priority essentials.",
+    }
+
+    CATEGORY_BOOST = {
+        "medication": 0,
+        "feeding": 1,
+        "walk": 1,
+        "grooming": 2,
+        "general": 3,
+    }
+
     def __init__(self, available_time: str):
         """Initialize the scheduler with available time and empty task lists."""
         self.list_of_tasks: List[Task] = []     # all tasks to consider
@@ -164,20 +323,26 @@ class Scheduler:
         self.scheduled_tasks: List[Task] = []   # tasks that fit in the plan
         self.skipped_tasks: List[Task] = []     # tasks that didn't fit
         self.conflicts: List[tuple[Task, Task]] = []
+        self.planning_log: List[str] = []
 
     def _parse_available_time(self, available_time: str) -> int:
         """Convert a string like '120' or '120 minutes' into an integer."""
         if isinstance(available_time, int):
             return available_time
         if not isinstance(available_time, str):
+            logger.warning("Unexpected available_time type %s; using 0.", type(available_time).__name__)
             return 0
 
         digits = "".join(char for char in available_time if char.isdigit())
-        return int(digits) if digits else 0
+        if not digits:
+            logger.warning("Could not parse available_time '%s'; using 0.", available_time)
+            return 0
+        return int(digits)
 
     def load_tasks_from_owner(self, owner: Owner) -> None:
         """Retrieve all incomplete tasks from the owner's pets."""
         self.list_of_tasks = [task for task in owner.get_all_tasks() if not task.completed]
+        self.planning_log.append(f"Loaded {len(self.list_of_tasks)} pending task(s) from owner data.")
 
     def _parse_time(self, time_value: str) -> int:
         """Convert an HH:MM string into total minutes for sorting."""
@@ -188,16 +353,18 @@ class Scheduler:
             return 0
 
     def sort_tasks(self) -> None:
-        """Sort tasks by priority, then by time, duration, and name for a stable plan."""
+        """Sort tasks by priority, then retrieved category guidance, then time."""
         priority_rank = {"high": 0, "medium": 1, "low": 2}
         self.list_of_tasks.sort(
             key=lambda task: (
                 priority_rank.get(task.priority.lower(), 99),
+                self.CATEGORY_BOOST.get(task.category.lower(), self.CATEGORY_BOOST["general"]),
                 self._parse_time(getattr(task, "time_of_day", "00:00")),
                 task.duration,
                 task.task_name.lower(),
             )
         )
+        self.planning_log.append("Sorted tasks by priority, category guidance, and time.")
 
     def sort_by_time(self) -> None:
         """Sort tasks chronologically by their scheduled time of day."""
@@ -211,7 +378,7 @@ class Scheduler:
         for task in self.list_of_tasks:
             if completed is not None and task.completed != completed:
                 continue
-            if pet_name is not None and pet_name not in task.task_name.lower():
+            if pet_name is not None and pet_name.lower() not in task.pet_name.lower():
                 continue
             filtered_tasks.append(task)
         return filtered_tasks
@@ -232,6 +399,7 @@ class Scheduler:
                 if self._tasks_overlap(first_task, second_task):
                     conflicts.append((first_task, second_task))
         self.conflicts = conflicts
+        self.planning_log.append(f"Detected {len(conflicts)} conflict(s).")
         return conflicts
 
     def get_conflict_warning(self) -> str:
@@ -261,7 +429,34 @@ class Scheduler:
             else:
                 self.skipped_tasks.append(task)
 
+        self.planning_log.append(
+            f"Scheduled {len(self.scheduled_tasks)} task(s) and skipped {len(self.skipped_tasks)} due to time limit."
+        )
+
         return self.scheduled_tasks
+
+    def _retrieve_guidance_for_task(self, task: Task) -> str:
+        """Retrieve short category guidance used to explain scheduling decisions."""
+        category = task.category.lower()
+        return self.KNOWLEDGE_BASE.get(category, self.KNOWLEDGE_BASE["general"])
+
+    def get_planning_log(self) -> List[str]:
+        """Expose planning steps for UI and CLI transparency."""
+        return list(self.planning_log)
+
+    def reliability_report(self) -> Dict[str, Any]:
+        """Return simple reliability metrics to verify scheduler behavior."""
+        total_tasks = len(self.list_of_tasks)
+        scheduled_count = len(self.scheduled_tasks)
+        skipped_count = len(self.skipped_tasks)
+        coverage = (scheduled_count / total_tasks) if total_tasks else 0.0
+        return {
+            "total_tasks": total_tasks,
+            "scheduled_tasks": scheduled_count,
+            "skipped_tasks": skipped_count,
+            "conflicts": len(self.conflicts),
+            "coverage_ratio": round(coverage, 2),
+        }
 
     def generate_schedule(self) -> DailyPlan:
         """Build a daily plan from sorted tasks that fit within the allowed time."""
@@ -277,18 +472,25 @@ class Scheduler:
             remaining_time=remaining_time,
             explanation=self.explain_schedule(),
         )
+        self.planning_log.append("Generated daily plan object.")
         return plan
 
     def explain_schedule(self) -> str:
-        """Return a short explanation of which tasks were included or skipped."""
+        """Return explanation with retrieved guidance for each scheduled task."""
         if not self.list_of_tasks:
             return "No tasks were available to schedule."
 
         included = ", ".join(task.task_name for task in self.scheduled_tasks) or "none"
         skipped = ", ".join(task.task_name for task in self.skipped_tasks) or "none"
+        guidance_segments = []
+        for task in self.scheduled_tasks:
+            guidance_segments.append(f"{task.task_name}: {self._retrieve_guidance_for_task(task)}")
+        guidance_text = " | ".join(guidance_segments) if guidance_segments else "none"
+
         return (
             f"Tasks were sorted by priority and scheduled until the {self.available_time_minutes}-minute "
-            f"limit was reached. Included: {included}. Skipped due to time: {skipped}."
+            f"limit was reached. Included: {included}. Skipped due to time: {skipped}. "
+            f"Guidance used: {guidance_text}."
         )
 
 

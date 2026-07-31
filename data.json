@@ -1,0 +1,71 @@
+{
+  "owner_name": "Maria",
+  "available_time": "90",
+  "preferences": {},
+  "pets": [
+    {
+      "pet_name": "Biscuit",
+      "species": "Dog",
+      "breed": "Golden Retriever",
+      "age": 3,
+      "tasks": [
+        {
+          "task_name": "Morning walk",
+          "duration": 30,
+          "priority": "high",
+          "category": "walk",
+          "recurring": false,
+          "completed": false,
+          "time_of_day": "07:00",
+          "recurrence": "",
+          "due_date": "2026-07-31",
+          "pet_name": "Biscuit"
+        },
+        {
+          "task_name": "Feeding",
+          "duration": 15,
+          "priority": "medium",
+          "category": "feeding",
+          "recurring": false,
+          "completed": false,
+          "time_of_day": "08:15",
+          "recurrence": "",
+          "due_date": "2026-07-31",
+          "pet_name": "Biscuit"
+        },
+        {
+          "task_name": "Grooming",
+          "duration": 10,
+          "priority": "medium",
+          "category": "grooming",
+          "recurring": false,
+          "completed": false,
+          "time_of_day": "07:00",
+          "recurrence": "",
+          "due_date": "2026-07-31",
+          "pet_name": "Biscuit"
+        }
+      ]
+    },
+    {
+      "pet_name": "Mochi",
+      "species": "Cat",
+      "breed": "Siamese",
+      "age": 2,
+      "tasks": [
+        {
+          "task_name": "Medication",
+          "duration": 20,
+          "priority": "low",
+          "category": "medication",
+          "recurring": true,
+          "completed": true,
+          "time_of_day": "09:30",
+          "recurrence": "daily",
+          "due_date": "2026-07-31",
+          "pet_name": "Mochi"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+graph TD
+	subgraph Presentation
+		A[app.py\nStreamlit UI]
+		C[main.py\nCLI demo]
+	end
+
+	subgraph Core
+		B[pawpal_system.py\nDomain + scheduling logic]
+		E[Owner]
+		F[Pet]
+		G[Task]
+		H[Scheduler]
+		I[DailyPlan]
+	end
+
+	subgraph Verification
+		D[test_pawpal_system.py\nAutomated tests]
+	end
+
+	A --> B
+	C --> B
+	D --> B
+
+	B --> E
+	B --> F
+	B --> G
+	B --> H
+	B --> I
+
+	E --> F
+	F --> G
+	H --> G
+	H --> I
+
