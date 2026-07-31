@@ -75,6 +75,9 @@ def main() -> None:
     for step in scheduler.get_planning_log():
         print(f"- {step}")
 
+    trace_file = scheduler.save_decision_trace("logs/reasoning_trace_latest.json")
+    print(f"\nSaved structured decision trace to {trace_file}")
+
     owner.save_to_json("data.json")
     print("\nSaved current state to data.json")
 

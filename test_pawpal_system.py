@@ -284,3 +284,27 @@ def test_owner_preference_guidance_overrides_custom_document(tmp_path):
     plan = scheduler.generate_schedule()
 
     assert "Owner preference: prioritize medication before other tasks." in plan.explanation
+
+
+def test_scheduler_decision_trace_records_multistep_reasoning_and_saves(tmp_path):
+    owner = Owner("Maria", "30")
+    pet = Pet("Biscuit", "Dog", "Golden Retriever", 3)
+    owner.add_pet(pet)
+    pet.add_task(Task("Walk", 20, "high", "walk", time_of_day="07:00"))
+    pet.add_task(Task("Feeding", 15, "medium", "feeding", time_of_day="08:00"))
+
+    scheduler = Scheduler(owner.available_time)
+    scheduler.load_tasks_from_owner(owner)
+    scheduler.generate_schedule()
+
+    trace_steps = [entry["step"] for entry in scheduler.get_decision_trace()]
+    assert "load_tasks" in trace_steps
+    assert "start_generate_schedule" in trace_steps
+    assert "sort_tasks" in trace_steps
+    assert "filter_tasks" in trace_steps
+    assert "find_conflicts" in trace_steps
+    assert "final_plan" in trace_steps
+
+    trace_file = tmp_path / "decision_trace.json"
+    scheduler.save_decision_trace(str(trace_file))
+    assert trace_file.exists()

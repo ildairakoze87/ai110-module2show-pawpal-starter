@@ -326,6 +326,7 @@ class Scheduler:
         self.skipped_tasks: List[Task] = []     # tasks that didn't fit
         self.conflicts: List[tuple[Task, Task]] = []
         self.planning_log: List[str] = []
+        self.decision_trace: List[Dict[str, Any]] = []
         self.custom_category_guidance: Dict[str, str] = {}
         self.custom_task_guidance: Dict[str, str] = {}
         self.owner_category_guidance: Dict[str, str] = {}
@@ -333,6 +334,10 @@ class Scheduler:
 
         default_path = retrieval_file_path or self.DEFAULT_RETRIEVAL_FILE
         self.load_custom_retrieval_documents(default_path)
+
+    def _record_trace(self, step: str, details: Dict[str, Any]) -> None:
+        """Record structured reasoning steps for audit and documentation."""
+        self.decision_trace.append({"step": step, "details": details})
 
     def _parse_available_time(self, available_time: str) -> int:
         """Convert a string like '120' or '120 minutes' into an integer."""
@@ -353,6 +358,13 @@ class Scheduler:
         self.list_of_tasks = [task for task in owner.get_all_tasks() if not task.completed]
         self._load_owner_guidance(owner.preferences)
         self.planning_log.append(f"Loaded {len(self.list_of_tasks)} pending task(s) from owner data.")
+        self._record_trace(
+            "load_tasks",
+            {
+                "pending_count": len(self.list_of_tasks),
+                "tasks": [task.task_name for task in self.list_of_tasks],
+            },
+        )
 
     def load_custom_retrieval_documents(self, file_path: str) -> None:
         """Load optional retrieval guidance from a custom JSON document."""
@@ -380,6 +392,13 @@ class Scheduler:
         self.planning_log.append(
             "Loaded custom retrieval guidance from document source."
         )
+        self._record_trace(
+            "load_custom_retrieval",
+            {
+                "category_guidance_count": len(self.custom_category_guidance),
+                "task_guidance_count": len(self.custom_task_guidance),
+            },
+        )
 
     def _load_owner_guidance(self, preferences: Dict[str, Any]) -> None:
         """Load retrieval hints from owner preferences as a second source."""
@@ -394,6 +413,13 @@ class Scheduler:
         }
         if self.owner_category_guidance or self.owner_task_guidance:
             self.planning_log.append("Loaded owner-preference retrieval guidance.")
+            self._record_trace(
+                "load_owner_retrieval",
+                {
+                    "category_guidance_count": len(self.owner_category_guidance),
+                    "task_guidance_count": len(self.owner_task_guidance),
+                },
+            )
 
     def _parse_time(self, time_value: str) -> int:
         """Convert an HH:MM string into total minutes for sorting."""
@@ -416,6 +442,12 @@ class Scheduler:
             )
         )
         self.planning_log.append("Sorted tasks by priority, category guidance, and time.")
+        self._record_trace(
+            "sort_tasks",
+            {
+                "sorted_order": [task.task_name for task in self.list_of_tasks],
+            },
+        )
 
     def sort_by_time(self) -> None:
         """Sort tasks chronologically by their scheduled time of day."""
@@ -451,6 +483,19 @@ class Scheduler:
                     conflicts.append((first_task, second_task))
         self.conflicts = conflicts
         self.planning_log.append(f"Detected {len(conflicts)} conflict(s).")
+        self._record_trace(
+            "find_conflicts",
+            {
+                "conflict_count": len(conflicts),
+                "pairs": [
+                    {
+                        "first": first.task_name,
+                        "second": second.task_name,
+                    }
+                    for first, second in conflicts
+                ],
+            },
+        )
         return conflicts
 
     def get_conflict_warning(self) -> str:
@@ -483,6 +528,14 @@ class Scheduler:
         self.planning_log.append(
             f"Scheduled {len(self.scheduled_tasks)} task(s) and skipped {len(self.skipped_tasks)} due to time limit."
         )
+        self._record_trace(
+            "filter_tasks",
+            {
+                "scheduled": [task.task_name for task in self.scheduled_tasks],
+                "skipped": [task.task_name for task in self.skipped_tasks],
+                "time_limit_minutes": self.available_time_minutes,
+            },
+        )
 
         return self.scheduled_tasks
 
@@ -505,6 +558,19 @@ class Scheduler:
         """Expose planning steps for UI and CLI transparency."""
         return list(self.planning_log)
 
+    def get_decision_trace(self) -> List[Dict[str, Any]]:
+        """Expose structured multi-step reasoning records."""
+        return list(self.decision_trace)
+
+    def save_decision_trace(self, file_path: str = "logs/reasoning_trace_latest.json") -> str:
+        """Persist the structured decision trace to a JSON file."""
+        path = Path(file_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", encoding="utf-8") as file:
+            json.dump(self.decision_trace, file, indent=2)
+        self.planning_log.append(f"Saved decision trace to {path}")
+        return str(path)
+
     def reliability_report(self) -> Dict[str, Any]:
         """Return simple reliability metrics to verify scheduler behavior."""
         total_tasks = len(self.list_of_tasks)
@@ -521,6 +587,12 @@ class Scheduler:
 
     def generate_schedule(self) -> DailyPlan:
         """Build a daily plan from sorted tasks that fit within the allowed time."""
+        self._record_trace(
+            "start_generate_schedule",
+            {
+                "available_time_minutes": self.available_time_minutes,
+            },
+        )
         self.sort_tasks()
         self.filter_tasks()
         self.find_conflicts()
@@ -534,6 +606,13 @@ class Scheduler:
             explanation=self.explain_schedule(),
         )
         self.planning_log.append("Generated daily plan object.")
+        self._record_trace(
+            "final_plan",
+            {
+                "total_time_used": total_time_used,
+                "remaining_time": remaining_time,
+            },
+        )
         return plan
 
     def explain_schedule(self) -> str:

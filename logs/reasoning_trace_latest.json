@@ -1,0 +1,82 @@
+[
+  {
+    "step": "load_tasks",
+    "details": {
+      "pending_count": 3,
+      "tasks": [
+        "Morning walk",
+        "Feeding",
+        "Grooming"
+      ]
+    }
+  },
+  {
+    "step": "sort_tasks",
+    "details": {
+      "sorted_order": [
+        "Morning walk",
+        "Feeding",
+        "Grooming"
+      ]
+    }
+  },
+  {
+    "step": "find_conflicts",
+    "details": {
+      "conflict_count": 1,
+      "pairs": [
+        {
+          "first": "Morning walk",
+          "second": "Grooming"
+        }
+      ]
+    }
+  },
+  {
+    "step": "start_generate_schedule",
+    "details": {
+      "available_time_minutes": 90
+    }
+  },
+  {
+    "step": "sort_tasks",
+    "details": {
+      "sorted_order": [
+        "Morning walk",
+        "Feeding",
+        "Grooming"
+      ]
+    }
+  },
+  {
+    "step": "filter_tasks",
+    "details": {
+      "scheduled": [
+        "Morning walk",
+        "Feeding",
+        "Grooming"
+      ],
+      "skipped": [],
+      "time_limit_minutes": 90
+    }
+  },
+  {
+    "step": "find_conflicts",
+    "details": {
+      "conflict_count": 1,
+      "pairs": [
+        {
+          "first": "Morning walk",
+          "second": "Grooming"
+        }
+      ]
+    }
+  },
+  {
+    "step": "final_plan",
+    "details": {
+      "total_time_used": 55,
+      "remaining_time": 35
+    }
+  }
+]
