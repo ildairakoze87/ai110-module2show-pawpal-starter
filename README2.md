@@ -3,7 +3,7 @@
 ## Title and Summary
 PawPal+ is an applied AI pet-care planning system that helps owners organize daily care tasks such as walks, feeding, medication, and grooming. It matters because owners often have limited time and many competing tasks, so the system provides a prioritized schedule, conflict warnings, and a clear explanation of planning decisions. The project combines scheduling logic, retrieval-style guidance, reliability checks, and persistence so the system is both useful and trustworthy.
 
-## Original Project (Modules 3)
+## Original Project (Modules 3(Show Pawpal starter))
 The original project I extended is **PawPal+ (Module 2 Project)**. Its original goal was to model pet-care planning with OOP classes (`Owner`, `Pet`, `Task`, `Scheduler`, `DailyPlan`) and generate a daily schedule based on available time and task priority. It already supported priority/time sorting, recurrence handling, conflict detection, and CLI plus Streamlit demonstrations.
 
 ## Architecture Overview
@@ -138,9 +138,14 @@ Reliability snapshot:
 ## Testing Summary
 What worked: the full automated test suite passed, the CLI demo ran end to end, persistence saved the current state to `data.json`, and invalid task inputs were safely normalized instead of crashing the app.
 
-What didn’t: the first version of the scheduler explanation was more basic, and the system originally did not surface reliability metrics or a planner execution log in the main output.
+What didn’t work : the first version of the scheduler explanation was more basic, and the system originally did not surface reliability metrics or a planner execution log in the main output.
 
 The graded responsible-AI reflection for this project is documented in `model_card.md`, as required by the assignment.
+
+## Reliability proof:
+ **16 out of 16 tests passed**; the CLI run completed successfully; and guardrail checks showed that invalid values were safely corrected instead of causing failures. The planner also records an execution log and reliability snapshot, which makes it easier to review what happened and why.
+
+> 16 out of 16 tests passed; the AI handled missing or invalid input by normalizing it; logging and the reliability snapshot made the run easy to review.
 
 ## Why This Meets the Applied AI Goal
 PawPal+ now functions as an end-to-end applied AI system: it plans tasks under constraints, retrieves guidance to justify decisions, logs and evaluates reliability, and supports human review with iterative feedback.
